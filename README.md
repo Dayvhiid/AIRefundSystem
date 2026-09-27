@@ -55,8 +55,8 @@ docker-compose up --build
 
 | Service | URL |
 |---------|-----|
-| Customer View | http://localhost:5173 |
-| Admin Dashboard | http://localhost:5173/admin |
+| Customer View | http://localhost |
+| Admin Dashboard | http://localhost/admin |
 | Backend API | http://localhost:4000/api |
 
 On first boot, the database is automatically seeded with 15 synthetic customers and ~20 orders covering every policy rule scenario.
@@ -253,7 +253,7 @@ For the video submission, follow this script:
 - "The policy engine always wins — the LLM can escalate further but cannot override a denied or escalated decision."
 
 ### 3. Customer Flow (90 seconds)
-- Open http://localhost:5173
+- Open http://localhost
 - Select a customer (e.g., "Ngozi Ibe" with a Laptop Sleeve)
 - Show the order details (item, amount, date, status)
 - Type a refund request: "The laptop sleeve arrived with a torn zipper"
@@ -266,7 +266,7 @@ For the video submission, follow this script:
 - Submit → show the escalated result with `prompt_injection_attempt` flag
 
 ### 5. Admin Dashboard (60 seconds)
-- Open http://localhost:5173/admin
+- Open http://localhost/admin
 - Show the real-time list of all refund requests
 - Click on a request to show the detail drawer
 - Explain the decision trail: policy rules applied, AI confidence, flags, reasoning
