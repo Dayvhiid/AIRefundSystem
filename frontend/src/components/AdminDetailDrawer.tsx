@@ -1,12 +1,41 @@
+import { useState, useEffect } from 'react'
 import type { RefundRequest } from '../lib/api'
+import { updateRefundDecision } from '../lib/api'
 
 interface Props {
   detail: RefundRequest | null
   loading: boolean
   onClose: () => void
+  onUpdate?: (updated: RefundRequest) => void
 }
 
-export default function AdminDetailDrawer({ detail, loading, onClose }: Props) {
+export default function AdminDetailDrawer({ detail, loading, onClose, onUpdate }: Props) {
+  const [updating, setUpdating] = useState(false)
+  const [localDetail, setLocalDetail] = useState<RefundRequest | null>(detail)
+
+  useEffect(() => {
+    setLocalDetail(detail)
+  }, [detail])
+
+  const handleDecision = async (decision: 'approved' | 'denied') => {
+    if (!localDetail) return
+    setUpdating(true)
+    try {
+      await updateRefundDecision(localDetail.id, decision)
+      const updated = {
+        ...localDetail,
+        decision,
+        flags: [...localDetail.flags, 'admin_override'],
+      }
+      setLocalDetail(updated)
+      onUpdate?.(updated)
+    } catch {
+      // ignore
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const badgeColor = {
     approved: 'bg-green-100 text-green-800',
     denied: 'bg-red-100 text-red-800',
@@ -28,61 +57,82 @@ export default function AdminDetailDrawer({ detail, loading, onClose }: Props) {
           <div className="p-6 text-center text-gray-400">Loading...</div>
         )}
 
-        {detail && (
+        {localDetail && (
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${badgeColor[detail.decision]}`}>
-                {detail.decision}
+              <span className={`px-3 py-1 rounded-full text-sm font-bold uppercase ${badgeColor[localDetail.decision]}`}>
+                {localDetail.decision}
               </span>
-              {detail.flags.length > 0 && (
+              {localDetail.flags.length > 0 && (
                 <span className="text-sm text-red-600">
-                  {detail.flags.length} flag{detail.flags.length > 1 ? 's' : ''}
+                  {localDetail.flags.length} flag{localDetail.flags.length > 1 ? 's' : ''}
                 </span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              {localDetail.decision !== 'approved' && (
+                <button
+                  onClick={() => handleDecision('approved')}
+                  disabled={updating}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+                >
+                  {updating ? 'Updating...' : 'Approve'}
+                </button>
+              )}
+              {localDetail.decision !== 'denied' && (
+                <button
+                  onClick={() => handleDecision('denied')}
+                  disabled={updating}
+                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+                >
+                  {updating ? 'Updating...' : 'Deny'}
+                </button>
               )}
             </div>
 
             <div className="space-y-2 text-sm">
               <div>
                 <span className="font-medium text-gray-500">Customer:</span>{' '}
-                {detail.customer?.name || 'N/A'}
+                {localDetail.customer?.name || 'N/A'}
               </div>
               <div>
                 <span className="font-medium text-gray-500">Order Item:</span>{' '}
-                {detail.order?.item || detail.orderItem || 'N/A'}
+                {localDetail.order?.item || localDetail.orderItem || 'N/A'}
               </div>
               <div>
                 <span className="font-medium text-gray-500">Amount:</span>{' '}
-                ${detail.order?.amount || detail.amount || 'N/A'}
+                ${localDetail.order?.amount || localDetail.amount || 'N/A'}
               </div>
               <div>
                 <span className="font-medium text-gray-500">Final Sale:</span>{' '}
-                {detail.order?.finalSale ? 'Yes' : 'No'}
+                {localDetail.order?.finalSale ? 'Yes' : 'No'}
               </div>
               <div>
                 <span className="font-medium text-gray-500">Submitted:</span>{' '}
-                {new Date(detail.createdAt).toLocaleString()}
+                {new Date(localDetail.createdAt).toLocaleString()}
               </div>
             </div>
 
             <div>
               <h3 className="font-medium text-gray-500 text-sm mb-1">Customer Message</h3>
               <p className="bg-gray-50 rounded-lg p-3 text-sm">
-                {detail.customerMessage || 'N/A'}
+                {localDetail.customerMessage || 'N/A'}
               </p>
             </div>
 
-            {detail.aiConfidence != null && (
+            {localDetail.aiConfidence != null && (
               <div>
                 <h3 className="font-medium text-gray-500 text-sm mb-1">AI Confidence</h3>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-indigo-600 h-2 rounded-full"
-                      style={{ width: `${Math.round(detail.aiConfidence * 100)}%` }}
+                      style={{ width: `${Math.round(localDetail.aiConfidence * 100)}%` }}
                     />
                   </div>
                   <span className="text-sm font-medium">
-                    {Math.round(detail.aiConfidence * 100)}%
+                    {Math.round(localDetail.aiConfidence * 100)}%
                   </span>
                 </div>
               </div>
@@ -91,15 +141,15 @@ export default function AdminDetailDrawer({ detail, loading, onClose }: Props) {
             <div>
               <h3 className="font-medium text-gray-500 text-sm mb-1">Reasoning</h3>
               <p className="bg-gray-50 rounded-lg p-3 text-sm leading-relaxed">
-                {detail.reasoning}
+                {localDetail.reasoning}
               </p>
             </div>
 
-            {detail.policyRulesApplied && detail.policyRulesApplied.length > 0 && (
+            {localDetail.policyRulesApplied && localDetail.policyRulesApplied.length > 0 && (
               <div>
                 <h3 className="font-medium text-gray-500 text-sm mb-2">Policy Rules Applied</h3>
                 <ul className="space-y-1">
-                  {detail.policyRulesApplied.map((rule, i) => (
+                  {localDetail.policyRulesApplied.map((rule, i) => (
                     <li key={i} className="text-sm bg-indigo-50 text-indigo-800 rounded px-3 py-1">
                       {rule}
                     </li>
@@ -108,11 +158,11 @@ export default function AdminDetailDrawer({ detail, loading, onClose }: Props) {
               </div>
             )}
 
-            {detail.flags.length > 0 && (
+            {localDetail.flags.length > 0 && (
               <div>
                 <h3 className="font-medium text-gray-500 text-sm mb-2">Flags</h3>
                 <ul className="space-y-1">
-                  {detail.flags.map((flag, i) => (
+                  {localDetail.flags.map((flag, i) => (
                     <li key={i} className="text-sm bg-red-50 text-red-800 rounded px-3 py-1">
                       {flag}
                     </li>

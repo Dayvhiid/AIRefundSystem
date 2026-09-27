@@ -8,7 +8,7 @@ import { GroqProvider } from './groq'
 export type { LLMProvider, LLMResponse, ProviderName } from './types'
 
 export function createProvider(provider?: ProviderName): LLMProvider {
-  const name = provider || (process.env.LLM_PROVIDER as ProviderName) || 'gemini'
+  const name = provider || (process.env.LLM_PROVIDER as ProviderName) || 'groq'
 
   switch (name) {
     case 'gemini': {

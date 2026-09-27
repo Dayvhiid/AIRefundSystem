@@ -19,6 +19,10 @@ export function useSSE() {
           if (exists) return prev
           return [data.request, ...prev]
         })
+      } else if (data.type === 'update_request') {
+        setRequests(prev =>
+          prev.map(r => (r.id === data.request.id ? { ...r, ...data.request } : r))
+        )
       }
     } catch {
       // ignore malformed events

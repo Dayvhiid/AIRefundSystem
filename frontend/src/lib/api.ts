@@ -73,3 +73,19 @@ export async function fetchRefundDetail(id: string): Promise<RefundRequest> {
   if (!res.ok) throw new Error('Failed to fetch refund detail')
   return res.json()
 }
+
+export async function updateRefundDecision(
+  id: string,
+  decision: 'approved' | 'denied' | 'escalated'
+): Promise<RefundRequest> {
+  const res = await fetch(`${API_BASE}/refund-requests/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => null)
+    throw new Error(err?.error?.message || 'Failed to update decision')
+  }
+  return res.json()
+}

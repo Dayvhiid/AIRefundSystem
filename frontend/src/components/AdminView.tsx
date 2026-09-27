@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSSE } from '../lib/sse'
-import { fetchRefundDetail, type RefundRequest } from '../lib/api'
+import { fetchRefundDetail, updateRefundDecision, type RefundRequest } from '../lib/api'
 import AdminDetailDrawer from './AdminDetailDrawer'
 
 export default function AdminView() {
@@ -9,6 +9,7 @@ export default function AdminView() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<RefundRequest | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const filtered = filter ? requests.filter(r => r.decision === filter) : requests
 
@@ -22,6 +23,19 @@ export default function AdminView() {
       // ignore
     } finally {
       setLoadingDetail(false)
+    }
+  }
+
+  const handleDecision = async (id: string, decision: 'approved' | 'denied', e: React.MouseEvent) => {
+    e.stopPropagation()
+    setUpdatingId(id)
+    try {
+      await updateRefundDecision(id, decision)
+      setDetail(prev => (prev && prev.id === id ? { ...prev, decision } : prev))
+    } catch {
+      // ignore
+    } finally {
+      setUpdatingId(null)
     }
   }
 
@@ -66,6 +80,7 @@ export default function AdminView() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Amount</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Decision</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Date</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -91,11 +106,31 @@ export default function AdminView() {
                 <td className="px-4 py-3 text-sm text-gray-500">
                   {new Date(r.createdAt).toLocaleString()}
                 </td>
+                <td className="px-4 py-3 text-sm text-right">
+                  {r.decision !== 'approved' && (
+                    <button
+                      onClick={(e) => handleDecision(r.id, 'approved', e)}
+                      disabled={updatingId === r.id}
+                      className="text-green-600 hover:text-green-800 font-medium mr-3 disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {r.decision !== 'denied' && (
+                    <button
+                      onClick={(e) => handleDecision(r.id, 'denied', e)}
+                      disabled={updatingId === r.id}
+                      className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                    >
+                      Deny
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                   No refund requests yet
                 </td>
               </tr>
@@ -111,6 +146,9 @@ export default function AdminView() {
           onClose={() => {
             setSelectedId(null)
             setDetail(null)
+          }}
+          onUpdate={(updated) => {
+            setDetail(updated)
           }}
         />
       )}

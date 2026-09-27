@@ -14,8 +14,8 @@ cd refund-system
 cd backend
 npm install
 
-# 3. Create your .env from the example
-cp .env.example .env
+# 3. Create your .env from the root example
+cp ../.env.example .env
 
 # 4. Edit .env — set your Groq API key (see "API Key Setup" below)
 # LLM_PROVIDER=groq
@@ -41,7 +41,7 @@ npm run dev
 # Clone and enter the project
 cd refund-system
 
-# Create your .env from the example
+# Create your .env from the root example (for docker-compose variable substitution)
 cp .env.example .env
 
 # Edit .env — set your Groq API key (see "API Key Setup" below)
@@ -155,7 +155,9 @@ Only the API key for your chosen provider is required.
 
 4. **Result persisted** with full reasoning trail, broadcast to admin dashboard via SSE.
 
-5. **Admin dashboard** shows all requests in real-time with the complete decision log.
+5. **Admin reviews** — dashboard shows all requests in real-time with the complete decision log. Admin can override any decision (approve/deny) via the Actions column or detail drawer.
+
+6. **Override tracked** — admin overrides are flagged with `admin_override` and logged in the policy rules applied, creating a full audit trail.
 
 ### How the System Decides if AI is Needed
 
@@ -191,6 +193,7 @@ A graded requirement — treated as first-class design:
 | `POST` | `/api/refund-requests` | Submit a new refund request |
 | `GET` | `/api/refund-requests` | List all requests (admin) |
 | `GET` | `/api/refund-requests/:id` | Full detail with reasoning trail |
+| `PATCH` | `/api/refund-requests/:id` | Admin override decision (approve/deny) |
 | `GET` | `/events` | SSE stream for real-time admin updates |
 
 ---

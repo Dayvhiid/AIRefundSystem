@@ -43,6 +43,18 @@ export async function broadcastNewRequest() {
   }
 }
 
+export async function broadcastUpdate(request: Record<string, unknown>) {
+  const payload = `data: ${JSON.stringify({ type: 'update_request', request })}\n\n`
+
+  for (const client of clients) {
+    try {
+      client.write(payload)
+    } catch {
+      clients.delete(client)
+    }
+  }
+}
+
 export async function sendInitialData(res: Response) {
   const requests = await prisma.refundRequest.findMany({
     orderBy: { createdAt: 'desc' },

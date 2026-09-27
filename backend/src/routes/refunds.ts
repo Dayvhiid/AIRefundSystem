@@ -4,13 +4,17 @@ import { prisma } from '../lib/prisma'
 import { createError } from '../middleware/errorHandler'
 import { evaluatePolicy } from '../services/policyEngine'
 import { callAIAndMerge } from '../services/aiOrchestration'
-import { broadcastNewRequest } from '../lib/sse'
+import { broadcastNewRequest, broadcastUpdate } from '../lib/sse'
 
 const router = Router()
 
 const submitSchema = z.object({
   orderId: z.string().uuid(),
   customerMessage: z.string().min(1, 'Message is required').max(2000, 'Message too long'),
+})
+
+const updateSchema = z.object({
+  decision: z.enum(['approved', 'denied', 'escalated']),
 })
 
 router.post('/', async (req, res, next) => {
@@ -60,10 +64,10 @@ router.post('/', async (req, res, next) => {
         customerMessage
       )
       if (aiResult.flags.includes('ai_response_invalid')) {
-        finalDecision = policyResult.decision
-        reasoning = policyResult.reasoning || 'This request meets the standard refund criteria.'
-        flags = policyResult.flags
-        policyRulesApplied = policyResult.rulesApplied
+        finalDecision = 'escalated'
+        reasoning = aiResult.reasoning
+        flags = aiResult.flags
+        policyRulesApplied = aiResult.policyRulesApplied
       } else {
         finalDecision = aiResult.decision
         reasoning = aiResult.reasoning
@@ -169,6 +173,71 @@ router.get('/:id', async (req, res, next) => {
       aiConfidence: request.aiConfidence,
       flags: request.flags,
       createdAt: request.createdAt.toISOString(),
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const parsed = updateSchema.safeParse(req.body)
+    if (!parsed.success) {
+      throw createError(400, 'VALIDATION_ERROR', parsed.error.errors[0].message)
+    }
+
+    const { decision } = parsed.data
+
+    const request = await prisma.refundRequest.findUnique({
+      where: { id: req.params.id },
+      include: {
+        order: {
+          include: { customer: true },
+        },
+      },
+    })
+
+    if (!request) {
+      throw createError(404, 'REQUEST_NOT_FOUND', 'No refund request found with the given ID.')
+    }
+
+    const previousDecision = request.decision
+
+    const updated = await prisma.refundRequest.update({
+      where: { id: req.params.id },
+      data: {
+        decision,
+        flags: [...request.flags, 'admin_override'],
+        policyRulesApplied: [
+          ...request.policyRulesApplied,
+          `Admin override: ${previousDecision} → ${decision}`,
+        ],
+      },
+      include: {
+        order: {
+          include: { customer: true },
+        },
+      },
+    })
+
+    await broadcastUpdate({
+      id: updated.id,
+      customerName: updated.order.customer.name,
+      orderItem: updated.order.item,
+      amount: Number(updated.order.amount),
+      decision: updated.decision,
+      reasoning: updated.reasoning,
+      flags: updated.flags,
+      createdAt: updated.createdAt.toISOString(),
+    })
+
+    res.json({
+      id: updated.id,
+      decision: updated.decision,
+      reasoning: updated.reasoning,
+      flags: updated.flags,
+      policyRulesApplied: updated.policyRulesApplied,
+      createdAt: updated.createdAt.toISOString(),
     })
   } catch (err) {
     next(err)
