@@ -39,99 +39,144 @@ export default function AdminView() {
     }
   }
 
-  const badgeColor = {
-    approved: 'bg-green-100 text-green-800',
-    denied: 'bg-red-100 text-red-800',
-    escalated: 'bg-yellow-100 text-yellow-800',
+  const badgeStyles = {
+    approved: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    denied: 'bg-red-50 text-red-700 ring-red-600/20',
+    escalated: 'bg-amber-50 text-amber-700 ring-amber-600/20',
   }
+
+  const filters = [
+    { value: '', label: 'All' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'denied', label: 'Denied' },
+    { value: 'escalated', label: 'Escalated' },
+  ]
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-gray-500">{connected ? 'Live' : 'Disconnected'}</span>
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500">Review and manage refund requests.</p>
+        </div>
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+          connected
+            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+            : 'bg-gray-100 text-gray-500'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+          {connected ? 'Live' : 'Disconnected'}
         </div>
       </div>
 
-      <div className="flex gap-2">
-        {['', 'approved', 'denied', 'escalated'].map(s => (
+      {/* Filter Pills */}
+      <div className="flex items-center gap-2">
+        {filters.map(f => (
           <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              filter === s
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              filter === f.value
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
-            {s || 'All'}
+            {f.label}
           </button>
         ))}
+        <span className="ml-2 text-sm text-gray-400">
+          {filtered.length} request{filtered.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      <div className="bg-white rounded-lg border overflow-hidden">
+      {/* Table Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Customer</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Item</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Amount</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Decision</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Date</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Item</th>
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Decision</th>
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="text-right px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-100">
             {filtered.map(r => (
               <tr
                 key={r.id}
                 onClick={() => handleRowClick(r.id)}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                className="hover:bg-gray-50/50 cursor-pointer transition-colors duration-150"
               >
-                <td className="px-4 py-3 text-sm">{r.customerName}</td>
-                <td className="px-4 py-3 text-sm">{r.orderItem}</td>
-                <td className="px-4 py-3 text-sm">${r.amount}</td>
-                <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${badgeColor[r.decision]}`}>
-                    {r.decision}
-                  </span>
-                  {r.flags.length > 0 && (
-                    <span className="ml-2 text-xs text-red-500" title={r.flags.join(', ')}>
-                      {r.flags.length} flag{r.flags.length > 1 ? 's' : ''}
+                <td className="px-6 py-4">
+                  <span className="text-sm font-medium text-gray-900">{r.customerName}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-gray-600">{r.orderItem}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm font-medium text-gray-900">${r.amount}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${badgeStyles[r.decision]}`}>
+                      {r.decision}
                     </span>
-                  )}
+                    {r.flags.length > 0 && (
+                      <span className="text-xs text-gray-400" title={r.flags.join(', ')}>
+                        {r.flags.length} flag{r.flags.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-500">
-                  {new Date(r.createdAt).toLocaleString()}
+                <td className="px-6 py-4">
+                  <span className="text-sm text-gray-500">
+                    {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  {r.decision !== 'approved' && (
-                    <button
-                      onClick={(e) => handleDecision(r.id, 'approved', e)}
-                      disabled={updatingId === r.id}
-                      className="text-green-600 hover:text-green-800 font-medium mr-3 disabled:opacity-50"
-                    >
-                      Approve
-                    </button>
-                  )}
-                  {r.decision !== 'denied' && (
-                    <button
-                      onClick={(e) => handleDecision(r.id, 'denied', e)}
-                      disabled={updatingId === r.id}
-                      className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
-                    >
-                      Deny
-                    </button>
-                  )}
+                <td className="px-6 py-4 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {r.decision !== 'approved' && (
+                      <button
+                        onClick={(e) => handleDecision(r.id, 'approved', e)}
+                        disabled={updatingId === r.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 disabled:opacity-50 transition-colors ring-1 ring-inset ring-emerald-600/20"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Approve
+                      </button>
+                    )}
+                    {r.decision !== 'denied' && (
+                      <button
+                        onClick={(e) => handleDecision(r.id, 'denied', e)}
+                        disabled={updatingId === r.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors ring-1 ring-inset ring-red-600/20"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Deny
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                  No refund requests yet
+                <td colSpan={6} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-500">No refund requests yet</p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -139,6 +184,7 @@ export default function AdminView() {
         </table>
       </div>
 
+      {/* Detail Drawer */}
       {selectedId && (
         <AdminDetailDrawer
           detail={detail}
